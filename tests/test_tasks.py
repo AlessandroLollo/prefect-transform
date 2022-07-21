@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from unittest import mock
 
 import pytest
@@ -15,37 +15,37 @@ from prefect_transform.tasks import create_materialization
 
 
 def test_missing_api_key_api_key_env_var_raises():
-    @flow
+    @flow(name="test_flow_1")
     def test_flow():
         return create_materialization()
 
     msg_match = "Both `api_key` and `api_key_env_var` are missing."
     with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 def test_api_key_env_var_not_found_raises():
-    @flow
+    @flow(name="test_flow_2")
     def test_flow():
         return create_materialization(api_key_env_var="env_var")
 
     msg_match = "`api_key` is missing and `api_key_env_var` not found in env vars."
     with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 def test_missing_mql_server_url_mql_server_url_env_var_raises():
-    @flow
+    @flow(name="test_flow_3")
     def test_flow():
         return create_materialization(api_key="key")
 
     msg_match = "Both `mql_server_url` and `mql_server_url_env_var` are missing."
     with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 def test_mql_server_url_env_var_not_found_raises():
-    @flow
+    @flow(name="test_flow_4")
     def test_flow():
         return create_materialization(api_key="key", mql_server_url_env_var="env_var")
 
@@ -53,21 +53,21 @@ def test_mql_server_url_env_var_not_found_raises():
         `mql_server_url` is missing and `mql_server_url_env_var` not found in env vars.
     """
     with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 def test_missing_materialization_name_raises():
-    @flow
+    @flow(name="test_flow_5")
     def test_flow():
         return create_materialization(api_key="key", mql_server_url="url")
 
     msg_match = "`materialization_name` is missing."
     with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 def test_raises_on_connection_exception():
-    @flow
+    @flow(name="test_flow_6")
     def test_flow():
         return create_materialization(
             api_key="key", mql_server_url="url", materialization_name="mt_name"
@@ -75,7 +75,7 @@ def test_raises_on_connection_exception():
 
     msg_match = "Cannot connect to Transform server!"
     with pytest.raises(TransformAuthException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 @mock.patch("prefect_transform.tasks.MQLClient")
@@ -90,6 +90,7 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
+            warnings: List[str] = None
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -101,11 +102,12 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
+                warnings=[]
             )
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_7")
     def test_flow():
         return create_materialization(
             api_key="key",
@@ -118,7 +120,7 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
         f"Transform materialization async creation failed! Error is: {error_msg}"
     )
     with pytest.raises(TransformRuntimeException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 @mock.patch("prefect_transform.tasks.MQLClient")
@@ -139,7 +141,7 @@ def test_run_raises_on_create_materialization_sync(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_8")
     def test_flow():
         return create_materialization(
             api_key="key", mql_server_url="url", materialization_name="mt_name"
@@ -147,7 +149,7 @@ def test_run_raises_on_create_materialization_sync(mock_mql_client):
 
     msg_match = f"Transform materialization sync creation failed! Error is: {error_msg}"
     with pytest.raises(TransformRuntimeException, match=msg_match):
-        test_flow().result().result()
+        test_flow()
 
 
 @mock.patch("prefect_transform.tasks.MQLClient")
@@ -160,6 +162,7 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
+            warnings: List[str] = None
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -171,11 +174,12 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
+                warnings=[]
             )
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_9")
     def test_flow():
         return create_materialization(
             api_key="key",
@@ -184,7 +188,7 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
             wait_for_creation=False,
         )
 
-    response = test_flow().result().result()
+    response = test_flow()
 
     assert response.is_complete is True
     assert response.is_successful is True
@@ -201,6 +205,7 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
+            warnings: List[str] = None
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -212,11 +217,12 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
+                warnings=[]
             )
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_10")
     def test_flow():
         return create_materialization(
             api_key="key",
@@ -225,7 +231,7 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
             wait_for_creation=False,
         )
 
-    response = test_flow().result().result()
+    response = test_flow()
 
     assert response.is_complete is False
     assert response.is_successful is False
@@ -242,6 +248,7 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
+            warnings: List[str] = None
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -253,11 +260,12 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
+                warnings=[]
             )
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_11")
     def test_flow():
         return create_materialization(
             api_key="key",
@@ -266,7 +274,7 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
             wait_for_creation=False,
         )
 
-    response = test_flow().result().result()
+    response = test_flow()
 
     assert response.is_complete is False
     assert response.is_successful is False
@@ -289,12 +297,12 @@ def test_run_on_create_materialization_sync(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
-    @flow
+    @flow(name="test_flow_12")
     def test_flow():
         return create_materialization(
             api_key="key", mql_server_url="url", materialization_name="mt_name"
         )
 
-    response = test_flow().result().result()
+    response = test_flow()
 
     assert response.fully_qualified_name == "schema.table"
