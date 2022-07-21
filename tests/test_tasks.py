@@ -90,7 +90,7 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
-            warnings: List[str] = None
+            warnings: List[str] = None,
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -102,7 +102,7 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
-                warnings=[]
+                warnings=[],
             )
 
     mock_mql_client.return_value = MockMQLClient
@@ -162,7 +162,7 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
-            warnings: List[str] = None
+            warnings: List[str] = None,
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -174,7 +174,7 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
-                warnings=[]
+                warnings=[],
             )
 
     mock_mql_client.return_value = MockMQLClient
@@ -205,7 +205,7 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
-            warnings: List[str] = None
+            warnings: List[str] = None,
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -217,7 +217,7 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
-                warnings=[]
+                warnings=[],
             )
 
     mock_mql_client.return_value = MockMQLClient
@@ -248,7 +248,7 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
             model_key_id: Optional[int] = None,
             output_table: Optional[str] = None,
             force: bool = False,
-            warnings: List[str] = None
+            warnings: List[str] = None,
         ):
             return MqlQueryStatusResp(
                 query_id="xyz",
@@ -260,7 +260,7 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
                 result=None,
                 result_primary_time_granularity=None,
                 result_source=None,
-                warnings=[]
+                warnings=[],
             )
 
     mock_mql_client.return_value = MockMQLClient
