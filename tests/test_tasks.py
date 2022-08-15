@@ -3,83 +3,55 @@ from unittest import mock
 
 import pytest
 from prefect import flow
+from pydantic import SecretStr
 from transform.exceptions import QueryRuntimeException
 from transform.models import MqlMaterializeResp, MqlQueryStatus, MqlQueryStatusResp
 
+from prefect_transform.credentials import TransformCredentials
 from prefect_transform.exceptions import (
-    TransformAuthException,
     TransformConfigurationException,
     TransformRuntimeException,
 )
 from prefect_transform.tasks import create_materialization
 
 
-def test_missing_api_key_api_key_env_var_raises():
-    @flow(name="test_flow_1")
-    def test_flow():
-        return create_materialization()
-
-    msg_match = "Both `api_key` and `api_key_env_var` are missing."
-    with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow()
+class MockTransformCredentials:
+    def get_client(self):
+        pass
 
 
-def test_api_key_env_var_not_found_raises():
-    @flow(name="test_flow_2")
-    def test_flow():
-        return create_materialization(api_key_env_var="env_var")
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_missing_materialization_name_raises(
+    mock_mql_client, mock_transform_credentials
+):
+    class MockMQLClient:
+        def __init__(self):
+            super().__init__()
 
-    msg_match = "`api_key` is missing and `api_key_env_var` not found in env vars."
-    with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow()
+    mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
 
-def test_missing_mql_server_url_mql_server_url_env_var_raises():
-    @flow(name="test_flow_3")
-    def test_flow():
-        return create_materialization(api_key="key")
-
-    msg_match = "Both `mql_server_url` and `mql_server_url_env_var` are missing."
-    with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow()
-
-
-def test_mql_server_url_env_var_not_found_raises():
-    @flow(name="test_flow_4")
-    def test_flow():
-        return create_materialization(api_key="key", mql_server_url_env_var="env_var")
-
-    msg_match = """
-        `mql_server_url` is missing and `mql_server_url_env_var` not found in env vars.
-    """
-    with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow()
-
-
-def test_missing_materialization_name_raises():
     @flow(name="test_flow_5")
     def test_flow():
-        return create_materialization(api_key="key", mql_server_url="url")
+        credentials = TransformCredentials(
+            api_key=SecretStr("foo"), mql_server_url="foo"
+        )
+
+        return create_materialization(credentials=credentials)
 
     msg_match = "`materialization_name` is missing."
     with pytest.raises(TransformConfigurationException, match=msg_match):
         test_flow()
 
 
-def test_raises_on_connection_exception():
-    @flow(name="test_flow_6")
-    def test_flow():
-        return create_materialization(
-            api_key="key", mql_server_url="url", materialization_name="mt_name"
-        )
-
-    msg_match = "Cannot connect to Transform server!"
-    with pytest.raises(TransformAuthException, match=msg_match):
-        test_flow()
-
-
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_raises_on_create_materialization_async(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_raises_on_create_materialization_async(
+    mock_mql_client, mock_transform_credentials
+):
     error_msg = "Error while creating async materialization!"
 
     class MockMQLClient:
@@ -107,11 +79,15 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_7")
     def test_flow():
         return create_materialization(
-            api_key="key",
-            mql_server_url="url",
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
             materialization_name="mt_name",
             wait_for_creation=False,
         )
@@ -123,8 +99,11 @@ def test_run_raises_on_create_materialization_async(mock_mql_client):
         test_flow()
 
 
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_raises_on_create_materialization_sync(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_raises_on_create_materialization_sync(
+    mock_mql_client, mock_transform_credentials
+):
     error_msg = "Error while creating sync materialization!"
 
     class MockMQLClient:
@@ -141,10 +120,16 @@ def test_run_raises_on_create_materialization_sync(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_8")
     def test_flow():
         return create_materialization(
-            api_key="key", mql_server_url="url", materialization_name="mt_name"
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
+            materialization_name="mt_name",
         )
 
     msg_match = f"Transform materialization sync creation failed! Error is: {error_msg}"
@@ -152,8 +137,11 @@ def test_run_raises_on_create_materialization_sync(mock_mql_client):
         test_flow()
 
 
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_on_create_materialization_async_successful_status(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_on_create_materialization_async_successful_status(
+    mock_mql_client, mock_transform_credentials
+):
     class MockMQLClient:
         def create_materialization(
             materialization_name: str,
@@ -179,11 +167,15 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_9")
     def test_flow():
         return create_materialization(
-            api_key="key",
-            mql_server_url="url",
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
             materialization_name="mt_name",
             wait_for_creation=False,
         )
@@ -195,8 +187,11 @@ def test_run_on_create_materialization_async_successful_status(mock_mql_client):
     assert response.is_failed is False
 
 
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_on_create_materialization_async_pending_status(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_on_create_materialization_async_pending_status(
+    mock_mql_client, mock_transform_credentials
+):
     class MockMQLClient:
         def create_materialization(
             materialization_name: str,
@@ -222,11 +217,15 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_10")
     def test_flow():
         return create_materialization(
-            api_key="key",
-            mql_server_url="url",
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
             materialization_name="mt_name",
             wait_for_creation=False,
         )
@@ -238,8 +237,11 @@ def test_run_on_create_materialization_async_pending_status(mock_mql_client):
     assert response.is_failed is False
 
 
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_on_create_materialization_async_running_status(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_on_create_materialization_async_running_status(
+    mock_mql_client, mock_transform_credentials
+):
     class MockMQLClient:
         def create_materialization(
             materialization_name: str,
@@ -265,11 +267,15 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_11")
     def test_flow():
         return create_materialization(
-            api_key="key",
-            mql_server_url="url",
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
             materialization_name="mt_name",
             wait_for_creation=False,
         )
@@ -281,8 +287,11 @@ def test_run_on_create_materialization_async_running_status(mock_mql_client):
     assert response.is_failed is False
 
 
-@mock.patch("prefect_transform.tasks.MQLClient")
-def test_run_on_create_materialization_sync(mock_mql_client):
+@mock.patch("prefect_transform.credentials.TransformCredentials")
+@mock.patch("prefect_transform.credentials.MQLClient")
+def test_run_on_create_materialization_sync(
+    mock_mql_client, mock_transform_credentials
+):
     class MockMQLClient:
         def materialize(
             materialization_name: str,
@@ -297,10 +306,16 @@ def test_run_on_create_materialization_sync(mock_mql_client):
 
     mock_mql_client.return_value = MockMQLClient
 
+    mock_transform_credentials.return_value = MockTransformCredentials
+    mock_transform_credentials.get_client.return_value = mock_mql_client
+
     @flow(name="test_flow_12")
     def test_flow():
         return create_materialization(
-            api_key="key", mql_server_url="url", materialization_name="mt_name"
+            credentials=TransformCredentials(
+                api_key=SecretStr("foo"), mql_server_url="foo"
+            ),
+            materialization_name="mt_name",
         )
 
     response = test_flow()
