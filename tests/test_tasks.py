@@ -8,43 +8,13 @@ from transform.exceptions import QueryRuntimeException
 from transform.models import MqlMaterializeResp, MqlQueryStatus, MqlQueryStatusResp
 
 from prefect_transform.credentials import TransformCredentials
-from prefect_transform.exceptions import (
-    TransformConfigurationException,
-    TransformRuntimeException,
-)
+from prefect_transform.exceptions import TransformRuntimeException
 from prefect_transform.tasks import create_materialization
 
 
 class MockTransformCredentials:
     def get_client(self):
         pass
-
-
-@mock.patch("prefect_transform.credentials.TransformCredentials")
-@mock.patch("prefect_transform.credentials.MQLClient")
-def test_missing_materialization_name_raises(
-    mock_mql_client, mock_transform_credentials
-):
-    class MockMQLClient:
-        def __init__(self):
-            super().__init__()
-
-    mock_mql_client.return_value = MockMQLClient
-
-    mock_transform_credentials.return_value = MockTransformCredentials
-    mock_transform_credentials.get_client.return_value = mock_mql_client
-
-    @flow(name="test_flow_5")
-    def test_flow():
-        credentials = TransformCredentials(
-            api_key=SecretStr("foo"), mql_server_url="foo"
-        )
-
-        return create_materialization(credentials=credentials)
-
-    msg_match = "`materialization_name` is missing."
-    with pytest.raises(TransformConfigurationException, match=msg_match):
-        test_flow()
 
 
 @mock.patch("prefect_transform.credentials.TransformCredentials")

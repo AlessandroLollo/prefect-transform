@@ -6,21 +6,18 @@ from transform.exceptions import QueryRuntimeException
 from transform.models import MqlMaterializeResp, MqlQueryStatusResp
 
 from prefect_transform.credentials import TransformCredentials
-from prefect_transform.exceptions import (
-    TransformConfigurationException,
-    TransformRuntimeException,
-)
+from prefect_transform.exceptions import TransformRuntimeException
 
 
 @task
 def create_materialization(
     credentials: TransformCredentials,
-    materialization_name: str = None,
+    materialization_name: str,
     model_key_id: Optional[int] = None,
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     output_table: Optional[str] = None,
-    force: Optional[bool] = False,
+    force: bool = False,
     wait_for_creation: Optional[bool] = True,
 ) -> Union[MqlMaterializeResp, MqlQueryStatusResp]:
     """
@@ -32,7 +29,8 @@ def create_materialization(
     under the hood.
 
     Args:
-        credentials: TODO
+        credentials: `TransformCredentials` object used to obtain a client to
+            interact with Transform.
         materialization_name: The name of the Transform
             materialization to create.
         model_key_id: The unique identifier of the Transform model
@@ -56,11 +54,6 @@ def create_materialization(
         An `MqlQueryStatusResp` object if `run_async` is `True`.
         An `MqlMaterializeResp` object if `run_async` is `False`.
     """
-
-    if not materialization_name:
-        msg = "`materialization_name` is missing."
-        raise TransformConfigurationException(msg)
-
     use_async = not wait_for_creation
     mql_client = credentials.get_client()
 
