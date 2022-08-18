@@ -44,4 +44,4 @@ class TransformCredentials(Block):
             return MQLClient(api_key=_api_key, mql_server_url=self.mql_server_url)
         except (AuthException, URLException) as e:
             msg = f"Cannot connect to Transform server! Error is: {e}"
-            raise TransformAuthException(msg)
+            raise TransformAuthException(msg) from e
