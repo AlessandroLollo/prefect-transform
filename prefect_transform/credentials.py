@@ -24,6 +24,7 @@ class TransformCredentials(Block):
     """  # noqa E501
 
     _block_type_name = "Transform Credentials"
+    _logo_url = "https://github.com/PrefectHQ/prefect/blob/main/docs/img/collections/transform.png?raw=true"  # noqa
 
     api_key: SecretStr = Field(..., description="Transform API key")
     mql_server_url: str = Field(..., description="Transform MQL Server URL")
