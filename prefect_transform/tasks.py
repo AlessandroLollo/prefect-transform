@@ -1,31 +1,23 @@
 """Collection of tasks to interact with Transform metrics catalog"""
-import os
 from typing import Optional, Union
 
 from prefect import task
-from transform import MQLClient
-from transform.exceptions import AuthException, QueryRuntimeException, URLException
+from transform.exceptions import QueryRuntimeException
 from transform.models import MqlMaterializeResp, MqlQueryStatusResp
 
-from prefect_transform.exceptions import (
-    TransformAuthException,
-    TransformConfigurationException,
-    TransformRuntimeException,
-)
+from prefect_transform.credentials import TransformCredentials
+from prefect_transform.exceptions import TransformRuntimeException
 
 
 @task
 def create_materialization(
-    api_key: Optional[str] = None,
-    api_key_env_var: Optional[str] = None,
-    mql_server_url: Optional[str] = None,
-    mql_server_url_env_var: Optional[str] = None,
-    materialization_name: str = None,
+    credentials: TransformCredentials,
+    materialization_name: str,
     model_key_id: Optional[int] = None,
     start_time: Optional[str] = None,
     end_time: Optional[str] = None,
     output_table: Optional[str] = None,
-    force: Optional[bool] = False,
+    force: bool = False,
     wait_for_creation: Optional[bool] = True,
 ) -> Union[MqlMaterializeResp, MqlQueryStatusResp]:
     """
@@ -37,15 +29,8 @@ def create_materialization(
     under the hood.
 
     Args:
-        api_key: Transform API Key to be used to
-            connect to Transform MQL Server.
-        api_key_env_var: The name of the environment variable
-            that contains the API Key to be used to connect to Transform MQL Server.
-        mql_server_url: The URL of the Transform MQL Server
-            from which to create the materialization.
-        mql_server_url_env_var: The name of the environment variable
-            that contains the URL of the Transform MQL Server from which to
-            create the materialization.
+        credentials: `TransformCredentials` object used to obtain a client to
+            interact with Transform.
         materialization_name: The name of the Transform
             materialization to create.
         model_key_id: The unique identifier of the Transform model
@@ -60,10 +45,6 @@ def create_materialization(
             creation or not. Defaults to `True`.
 
     Raises:
-        `TransformConfigurationException` if both `api_key`
-            and `api_key_env_var` are missing.
-        `TransformConfigurationException` if both `mql_server_url`
-            and `mql_server_url_env_var` are missing.
         `TransformConfigurationException` if `materialization_name` is missing.
         `TransformAuthException` if the connection with the Transform
             server cannot be established.
@@ -72,44 +53,29 @@ def create_materialization(
     Returns:
         An `MqlQueryStatusResp` object if `run_async` is `True`.
         An `MqlMaterializeResp` object if `run_async` is `False`.
-    """
-    # Raise error if both api_key and api_key_env_var are missing
-    if not (api_key or api_key_env_var):
-        msg = "Both `api_key` and `api_key_env_var` are missing."
-        raise TransformConfigurationException(msg)
 
-    # Raise error if api_key is missing and env var is not found
-    if not api_key and api_key_env_var not in os.environ.keys():
-        msg = "`api_key` is missing and `api_key_env_var` not found in env vars."
-        raise TransformConfigurationException(msg)
+    Example:
+    ```python
+    from prefect import flow
+    from prefect_transform.tasks import (
+        create_materialization
+    )
 
-    # Raise error if both mql_server_url and mql_server_url_env_var are missing
-    if not (mql_server_url or mql_server_url_env_var):
-        msg = "Both `mql_server_url` and `mql_server_url_env_var` are missing."
-        raise TransformConfigurationException(msg)
 
-    # Raise error if mql_server_url is missing and env var is not found
-    if not mql_server_url and mql_server_url_env_var not in os.environ.keys():
-        msg = """
-        `mql_server_url` is missing and `mql_server_url_env_var` not found in env vars.
-        """
-        raise TransformConfigurationException(msg)
-
-    if not materialization_name:
-        msg = "`materialization_name` is missing."
-        raise TransformConfigurationException(msg)
-
-    mql_api_key = api_key or os.environ[api_key_env_var]
-    mql_url = mql_server_url or os.environ[mql_server_url_env_var]
-    use_async = not wait_for_creation
-
-    try:
-        mql_client = MQLClient(
-            api_key=mql_api_key, mql_server_url=mql_url, use_async=use_async
+    @flow
+    def trigger_materialization_creation():
+        create_materialization(
+            api_key="<your Transform API key>",
+            mql_server_url="<your MQL Serverl URL>",
+            materialization_name="<name of the materialization>",
+            wait_for_creation=False
         )
-    except (AuthException, URLException) as e:
-        msg = f"Cannot connect to Transform server! Error is: {e.msg}"
-        raise TransformAuthException(msg)
+
+    trigger_materialization_creation()
+    ```
+    """
+    use_async = not wait_for_creation
+    mql_client = credentials.get_client()
 
     response = None
     if use_async:
