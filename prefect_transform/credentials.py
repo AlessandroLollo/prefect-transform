@@ -1,6 +1,6 @@
 """Transform credentials block"""
 from prefect.blocks.core import Block
-from pydantic import Field, SecretStr, root_validator
+from pydantic import Field, SecretStr
 from transform import MQLClient
 from transform.exceptions import AuthException, URLException
 
@@ -27,15 +27,6 @@ class TransformCredentials(Block):
 
     api_key: SecretStr = Field(..., description="Transform API key")
     mql_server_url: str = Field(..., description="Transform MQL Server URL")
-
-    @root_validator(pre=True)
-    def check_credentials(cls, values):
-        """
-        Ensure the API key and the MQL Server URL are actually
-        passed.
-        """
-        # Given that both values are required, is this really needed?
-        return values
 
     def get_client(self) -> MQLClient:
         """
