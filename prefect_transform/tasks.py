@@ -56,22 +56,22 @@ def create_materialization(
 
     Example:
     ```python
-        from prefect import flow
-        from prefect_transform.tasks import (
-            create_materialization
+    from prefect import flow
+    from prefect_transform.tasks import (
+        create_materialization
+    )
+
+
+    @flow
+    def trigger_materialization_creation():
+        create_materialization(
+            api_key="<your Transform API key>",
+            mql_server_url="<your MQL Serverl URL>",
+            materialization_name="<name of the materialization>",
+            wait_for_creation=False
         )
 
-
-        @flow
-        def trigger_materialization_creation():
-            create_materialization(
-                api_key="<your Transform API key>",
-                mql_server_url="<your MQL Serverl URL>",
-                materialization_name="<name of the materialization>",
-                wait_for_creation=False
-            )
-
-        trigger_materialization_creation()
+    trigger_materialization_creation()
     ```
     """
     use_async = not wait_for_creation
