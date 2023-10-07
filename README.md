@@ -1,3 +1,4 @@
+⚠️ Transform [has been acquired](https://www.getdbt.com/blog/dbt-acquisition-transform) by dbt Labs, thus this Prefect collection is now useless, but it was fun to build! 😊
 # prefect-transform
 
 ## Welcome!
